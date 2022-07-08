@@ -1,7 +1,7 @@
 #include "driver/uart.h"
 #include <lightmodbus/lightmodbus.h>
 
-#define TRACKLE_MODBUS_VERSION "0.9.0"
+#define TRACKLE_MODBUS_VERSION "0.9.1"
 
 /**
  * @brief Modbus configuration parameters
