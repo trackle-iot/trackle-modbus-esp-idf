@@ -222,7 +222,7 @@ esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config)
     // Configure UART parameters
     modbus_uart_num = modbus_config->uart_num;
     ESP_RETURN_ON_ERROR(uart_param_config(modbus_config->uart_num, &uart_config));
-    uart_set_pin(modbus_config->uart_num, modbus_config->tx_io_num, modbus_config->rx_io_num, modbus_config->rts_io_num, modbus_config->rts_io_num);
+    uart_set_pin(modbus_config->uart_num, modbus_config->tx_io_num, modbus_config->rx_io_num, modbus_config->rts_io_num, modbus_config->cts_io_num);
 
     ESP_RETURN_ON_ERROR(uart_driver_install(modbus_config->uart_num, 512, 512, 10, NULL, 0));
     ESP_RETURN_ON_ERROR(uart_set_mode(modbus_config->uart_num, modbus_config->mode));
