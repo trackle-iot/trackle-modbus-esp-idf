@@ -26,6 +26,7 @@ uint16_t MODBUS_TIMEOUT = 100 / portTICK_RATE_MS;
 
 TickType_t xLastWriteTime;
 ModbusMaster master;
+ModbusExceptionCode lastError = MODBUS_EXCEP_NONE;
 
 /*
 return len of message for a given function
@@ -78,6 +79,7 @@ ModbusError dataCallback(const ModbusMaster *master, const ModbusDataCallbackArg
 ModbusError masterExceptionCallback(const ModbusMaster *master, uint8_t address, uint8_t function, ModbusExceptionCode code)
 {
     ESP_LOGE(TAG_M, "Received slave %d exception %d (function %d)\n", address, (code), function);
+    lastError = code;
 
     // Always return MODBUS_OK
     return MODBUS_OK;
@@ -87,6 +89,7 @@ ModbusError Trackle_Modbus_execute_command(TracleModbusFunction function, uint16
 {
 
     ModbusErrorInfo err;
+    lastError = MODBUS_EXCEP_NONE;
 
     // reset read buffer
     memset(modbus_uart_read_buffer, 0, MODBUS_MAX_PACKET_SIZE * 2);
@@ -162,9 +165,15 @@ ModbusError Trackle_Modbus_execute_command(TracleModbusFunction function, uint16
     xLastWriteTime = xTaskGetTickCount();
 
     // parse response
-    // ESP_LOG_BUFFER_HEX_LEVEL(TAG_M, modbus_buffer, len, ESP_LOG_WARN);
+    // ESP_LOG_BUFFER_HEX_LEVEL(TAG_M, modbus_uart_read_buffer, len, ESP_LOG_WARN);
     err = modbusParseResponseRTU(&master, modbusMasterGetRequest(&master),
                                  modbusMasterGetRequestLength(&master), modbus_uart_read_buffer, len);
+
+    // force error if masterExceptionCallback is fired
+    if (lastError > 0)
+    {
+        err.error = MODBUS_ERROR_OTHER;
+    }
 
     if (!modbusIsOk(err))
     {
