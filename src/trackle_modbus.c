@@ -31,7 +31,7 @@ ModbusExceptionCode lastError = MODBUS_EXCEP_NONE;
 /*
 return len of message for a given function
 */
-int modbus_response_len(TracleModbusFunction function, int data_len)
+int modbus_response_len(TrackleModbusFunction function, int data_len)
 {
     int len = 0;
 
@@ -85,7 +85,7 @@ ModbusError masterExceptionCallback(const ModbusMaster *master, uint8_t address,
     return MODBUS_OK;
 }
 
-ModbusError Trackle_Modbus_execute_command(TracleModbusFunction function, uint16_t address, uint16_t start, uint16_t size, void *value)
+ModbusError Trackle_Modbus_execute_command(TrackleModbusFunction function, uint16_t address, uint16_t start, uint16_t size, void *value)
 {
 
     ModbusErrorInfo err;

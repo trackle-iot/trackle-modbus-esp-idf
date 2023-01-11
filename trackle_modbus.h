@@ -42,7 +42,7 @@ typedef struct
 /**
  * @brief Modbus function enumeration
  */
-typedef enum TracleModbusFunction
+typedef enum TrackleModbusFunction
 {
     T_READ_COIL_STATUS = 1,
     T_READ_INPUT_STATUS = 2,
@@ -52,7 +52,7 @@ typedef enum TracleModbusFunction
     T_WRITE_SINGLE_REGISTER = 6,
     T_WRITE_MULTIPLE_COILS = 15,
     T_WRITE_MULTIPLE_REGISTERS = 16,
-} TracleModbusFunction;
+} TrackleModbusFunction;
 
 /**
  * @brief Initialize Modbus communication
@@ -66,7 +66,7 @@ esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config);
 
 /**
  * @brief Execute a Modbus command
- * @param function #TracleModbusFunction to specify command type
+ * @param function #TrackleModbusFunction to specify command type
  * @param address Slave address to read / write
  * @param start First register to read / write
  * @param size Number of registers to read / write
@@ -76,7 +76,7 @@ esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config);
  *    - MODBUS_ERROR_LENGTH if read / write operation goes in timeout
  *    - other error codes from the lightmodbus library
  */
-ModbusError Trackle_Modbus_execute_command(TracleModbusFunction function, uint16_t address, uint16_t start, uint16_t size, void *value);
+ModbusError Trackle_Modbus_execute_command(TrackleModbusFunction function, uint16_t address, uint16_t start, uint16_t size, void *value);
 
 /**
  * @brief Set Modbus timeout for any command
