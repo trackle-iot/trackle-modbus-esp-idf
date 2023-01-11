@@ -56,7 +56,7 @@ typedef enum TracleModbusFunction
 
 /**
  * @brief Initialize Modbus communication
- * @param modbus_config /ref modbus_config_t to configure Modbus intergace
+ * @param modbus_config #modbus_config_t to configure Modbus intergace
  * @return
  *    - ESP_OK if init operation was successful
  *    - ESP_FAIL if modbusMasterInit was not ok
@@ -66,7 +66,7 @@ esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config);
 
 /**
  * @brief Execute a Modbus command
- * @param function /ref TracleModbusFunction to specify command type
+ * @param function #TracleModbusFunction to specify command type
  * @param address Slave address to read / write
  * @param start First register to read / write
  * @param size Number of registers to read / write
