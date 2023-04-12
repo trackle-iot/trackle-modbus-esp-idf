@@ -12,6 +12,12 @@
 #include "esp_log.h"
 #include <math.h>
 #include <string.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+#include <driver/uart.h>
+#include <inttypes.h>
+#include <esp_log.h>
 
 #define TAG_M "modbus"
 
@@ -26,12 +32,26 @@ uint16_t MODBUS_TIMEOUT = 100 / portTICK_RATE_MS;
 
 TickType_t xLastWriteTime;
 ModbusMaster master;
+ModbusSlave slave;
 ModbusExceptionCode lastError = MODBUS_EXCEP_NONE;
+
+#define MAX_SLAVE_ADDRESSES_NUM 32
+static uart_port_t modbus_slave_uart_num;
+static uint8_t modbus_slave_uart_read_buffer[MODBUS_MAX_PACKET_SIZE * 2] = {0};
+static uint8_t slaveAddresses[MAX_SLAVE_ADDRESSES_NUM] = {0};
+static uint8_t slaveAddressesCount = 0;
+bool (*slaveRequestCallback)(bool check,
+                             uint8_t destAddr,
+                             uint16_t index,
+                             uint16_t valueToWrite,
+                             uint16_t *readValue,
+                             uint8_t function,
+                             TrackleModbusDataType_t dataType);
 
 /*
 return len of message for a given function
 */
-int modbus_response_len(TrackleModbusFunction function, int data_len)
+static int modbus_response_len(TrackleModbusFunction function, int data_len)
 {
     int len = 0;
 
@@ -59,7 +79,7 @@ int modbus_response_len(TrackleModbusFunction function, int data_len)
 /*
     Data callback for printing all incoming data
 */
-ModbusError dataCallback(const ModbusMaster *master, const ModbusDataCallbackArgs *args)
+static ModbusError dataCallback(const ModbusMaster *master, const ModbusDataCallbackArgs *args)
 {
     uint16_t index = ((uint16_t)modbusMasterGetRequest(master)[2] << 8) | modbusMasterGetRequest(master)[3];
     ESP_LOGD(TAG_M, "index %u", index);
@@ -70,6 +90,47 @@ ModbusError dataCallback(const ModbusMaster *master, const ModbusDataCallbackArg
     modbus_read_buffer[args->index - index] = args->value;
 
     // Always return MODBUS_OK
+    return MODBUS_OK;
+}
+
+static TrackleModbusDataType_t dataTypeInternalToExternal(ModbusDataType dataType)
+{
+    switch (dataType)
+    {
+    case MODBUS_HOLDING_REGISTER:
+        return T_HOLDING_REGISTER;
+    case MODBUS_INPUT_REGISTER:
+        return T_INPUT_REGISTER;
+    case MODBUS_COIL:
+        return T_COIL;
+    case MODBUS_DISCRETE_INPUT:
+        return T_DISCRETE_INPUT;
+    }
+    ESP_LOGE(TAG_M, "Invalid data type. Don't know how to convert.");
+    return -1;
+}
+
+/*
+    Data callback for requests to slave
+*/
+static ModbusError slaveDataCallback(const ModbusSlave *slave, const ModbusRegisterCallbackArgs *args, ModbusRegisterCallbackResult *result)
+{
+    ESP_LOGE("mb", "ENTERED");
+
+    const bool check = args->query == MODBUS_REGQ_R_CHECK || args->query == MODBUS_REGQ_W_CHECK;
+
+    const bool success = slaveRequestCallback(check,
+                                              args->rtuSlaveAddr,
+                                              args->index,
+                                              args->value,
+                                              &result->value,
+                                              args->function,
+                                              dataTypeInternalToExternal(args->type));
+
+    result->exceptionCode = success ? MODBUS_EXCEP_NONE : MODBUS_EXCEP_SLAVE_FAILURE;
+
+    ESP_LOGE("mb", "EXITED");
+
     return MODBUS_OK;
 }
 
@@ -248,6 +309,82 @@ esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config)
     if (!modbusIsOk(err))
     {
         ESP_LOGE(TAG_M, "modbusMasterInit() failed");
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
+static void mbSlaveTaskCode(void *args)
+{
+    ESP_LOGE("slave", "slave task created and started");
+
+    TickType_t latestWakeTick = xTaskGetTickCount();
+    for (;;)
+    {
+        const int readBytes = uart_read_bytes(modbus_slave_uart_num, modbus_slave_uart_read_buffer, MODBUS_MAX_PACKET_SIZE, 10 / portTICK_PERIOD_MS);
+        if (readBytes > 0)
+        {
+            const ModbusErrorInfo err = modbusParseRequestRTU(&slave, slaveAddresses, slaveAddressesCount, modbus_slave_uart_read_buffer, readBytes);
+            if (modbusIsOk(err) && modbusSlaveGetResponseLength(&slave))
+                uart_write_bytes(modbus_slave_uart_num, modbusSlaveGetResponse(&slave), modbusSlaveGetResponseLength(&slave));
+        }
+        vTaskDelayUntil(&latestWakeTick, 10 / portTICK_PERIOD_MS);
+    }
+}
+
+esp_err_t Trackle_Modbus_Slave_init(const modbus_slave_config_t *modbus_config)
+{
+    // Initialize and start Modbus controller
+    uart_config_t uart_config = {
+        .baud_rate = modbus_config->baud_rate,
+        .data_bits = modbus_config->data_bits,
+        .parity = modbus_config->parity,
+        .stop_bits = modbus_config->stop_bits,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 122,
+    };
+
+    // Copy slave addresses we must answer to
+    if (modbus_config->slaveAddressesCount <= 0)
+        return ESP_FAIL;
+    slaveAddressesCount = modbus_config->slaveAddressesCount;
+    for (uint8_t i = 0; i < slaveAddressesCount; i++)
+        slaveAddresses[i] = modbus_config->slaveAddresses[i];
+
+    // Save internally the slave request callback
+    if (modbus_config->slaveRequestCallback == NULL)
+        return ESP_FAIL;
+    slaveRequestCallback = modbus_config->slaveRequestCallback;
+
+    // Configure UART parameters
+    modbus_slave_uart_num = modbus_config->uart_num;
+    ESP_RETURN_ON_ERROR(uart_param_config(modbus_config->uart_num, &uart_config));
+    uart_set_pin(modbus_config->uart_num, modbus_config->tx_io_num, modbus_config->rx_io_num, modbus_config->rts_io_num, modbus_config->cts_io_num);
+
+    ESP_RETURN_ON_ERROR(uart_driver_install(modbus_config->uart_num, 512, 512, 10, NULL, 0));
+    ESP_RETURN_ON_ERROR(uart_set_mode(modbus_config->uart_num, modbus_config->mode));
+    ESP_RETURN_ON_ERROR(uart_set_rx_timeout(modbus_config->uart_num, ECHO_READ_TOUT));
+
+    ModbusErrorInfo err = modbusSlaveInit(
+        &slave,
+        slaveDataCallback,
+        NULL,
+        modbusDefaultAllocator,
+        modbusSlaveDefaultFunctions,
+        modbusSlaveDefaultFunctionCount);
+
+    if (!modbusIsOk(err))
+    {
+        ESP_LOGE(TAG_M, "modbusSlaveInit() failed");
+        return ESP_FAIL;
+    }
+
+    BaseType_t res = xTaskCreate(mbSlaveTaskCode, "mbslave_task", 8192, NULL, tskIDLE_PRIORITY + 5, NULL);
+
+    if (res != pdTRUE)
+    {
+        ESP_LOGE("slave", "slave task creation error");
         return ESP_FAIL;
     }
 

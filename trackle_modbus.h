@@ -39,6 +39,45 @@ typedef struct
     uart_mode_t mode;             /*!< UART mode to set */
 } modbus_config_t;
 
+#define MAX_SLAVE_ADDRESSES_NUM 32
+
+/**
+ * @brief Trackle Modbus data type
+ */
+typedef enum
+{
+    T_HOLDING_REGISTER = 1, //!< Holding register
+    T_INPUT_REGISTER = 2,   //!< Input register
+    T_COIL = 4,             //!< Coil
+    T_DISCRETE_INPUT = 8    //!< Discrete input
+} TrackleModbusDataType_t;
+
+/**
+ * @brief Modbus slave configuration parameters
+ */
+typedef struct
+{
+    uart_port_t uart_num;                            /*!< UART port number, can be UART_NUM_0 ~ (UART_NUM_MAX -1) */
+    int baud_rate;                                   /*!< UART baud rate */
+    uart_word_length_t data_bits;                    /*!< UART byte size */
+    uart_parity_t parity;                            /*!< UART parity mode */
+    uart_stop_bits_t stop_bits;                      /*!< UART stop bits */
+    int tx_io_num;                                   /*!< UART TX pin GPIO number */
+    int rx_io_num;                                   /*!< UART RX pin GPIO number */
+    int rts_io_num;                                  /*!< UART RTS pin GPIO number */
+    int cts_io_num;                                  /*!< UART CTS pin GPIO number */
+    uart_mode_t mode;                                /*!< UART mode to set */
+    uint8_t slaveAddresses[MAX_SLAVE_ADDRESSES_NUM]; /*!< Slave addresses array */
+    uint8_t slaveAddressesCount;                     /*!< Slave addresses array length */
+    bool (*slaveRequestCallback)(bool check,
+                                 uint8_t destAddr,
+                                 uint16_t index,
+                                 uint16_t valueToWrite,
+                                 uint16_t *readValue,
+                                 uint8_t function,
+                                 TrackleModbusDataType_t dataType);
+} modbus_slave_config_t;
+
 /**
  * @brief Modbus function enumeration
  */
@@ -55,14 +94,24 @@ typedef enum TrackleModbusFunction
 } TrackleModbusFunction;
 
 /**
- * @brief Initialize Modbus communication
- * @param modbus_config #modbus_config_t to configure Modbus intergace
+ * @brief Initialize Modbus master communication
+ * @param modbus_config #modbus_config_t to configure Modbus interface
  * @return
  *    - ESP_OK if init operation was successful
  *    - ESP_FAIL if modbusMasterInit was not ok
  *    - other error codes from the uart driver
  */
 esp_err_t Trackle_Modbus_init(const modbus_config_t *modbus_config);
+
+/**
+ * @brief Initialize Modbus slave communication
+ * @param config configuration of modbus slave interface
+ * @return
+ *    - ESP_OK if init was successful
+ *    - ESP_FAIL if modbusSlaveInit was not ok
+ *    - other error codes from the uart driver
+ */
+esp_err_t Trackle_Modbus_Slave_init(const modbus_slave_config_t *config);
 
 /**
  * @brief Execute a Modbus command
