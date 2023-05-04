@@ -17,6 +17,9 @@
  ******************************************************************************
  */
 
+#ifndef TRACKLE_MODBUS_H_
+#define TRACKLE_MODBUS_H_
+
 #include "driver/uart.h"
 #include <lightmodbus/lightmodbus.h>
 
@@ -140,3 +143,6 @@ bool Trackle_Modbus_set_timeout(uint16_t timeout_ms);
  * @return true if success
  */
 bool Trackle_Modbus_set_pause_between_packets(uint16_t pause_ms);
+
+#endif
+
