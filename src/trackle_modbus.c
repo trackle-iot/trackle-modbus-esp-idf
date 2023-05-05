@@ -40,13 +40,13 @@ static uart_port_t modbus_slave_uart_num;
 static uint8_t modbus_slave_uart_read_buffer[MODBUS_MAX_PACKET_SIZE * 2] = {0};
 static uint8_t slaveAddresses[MAX_SLAVE_ADDRESSES_NUM] = {0};
 static uint8_t slaveAddressesCount = 0;
-bool (*slaveRequestCallback)(bool check,
-                             uint8_t destAddr,
-                             uint16_t index,
-                             uint16_t valueToWrite,
-                             uint16_t *readValue,
-                             uint8_t function,
-                             TrackleModbusDataType_t dataType);
+static bool (*slaveRequestCallback)(bool check,
+                                    uint8_t destAddr,
+                                    uint16_t index,
+                                    uint16_t valueToWrite,
+                                    uint16_t *readValue,
+                                    uint8_t function,
+                                    TrackleModbusDataType_t dataType);
 
 /*
 return len of message for a given function
