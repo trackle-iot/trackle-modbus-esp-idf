@@ -23,7 +23,7 @@
 #include "driver/uart.h"
 #include <lightmodbus/lightmodbus.h>
 
-#define TRACKLE_MODBUS_VERSION "1.0.3"
+#define TRACKLE_MODBUS_VERSION "2.0.0"
 
 /**
  * @brief Modbus configuration parameters
@@ -78,7 +78,9 @@ typedef struct
                                  uint16_t valueToWrite,
                                  uint16_t *readValue,
                                  uint8_t function,
-                                 TrackleModbusDataType_t dataType);
+                                 TrackleModbusDataType_t dataType,
+                                 uint16_t regIdxInRequest,
+                                 uint16_t regsTotCountInRequest);
 } modbus_slave_config_t;
 
 /**

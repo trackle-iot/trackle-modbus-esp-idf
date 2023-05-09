@@ -46,7 +46,9 @@ static bool (*slaveRequestCallback)(bool check,
                                     uint16_t valueToWrite,
                                     uint16_t *readValue,
                                     uint8_t function,
-                                    TrackleModbusDataType_t dataType);
+                                    TrackleModbusDataType_t dataType,
+                                    uint16_t regIdxInRequest,
+                                    uint16_t regsTotCountInRequest);
 
 /*
 return len of message for a given function
@@ -125,7 +127,9 @@ static ModbusError slaveDataCallback(const ModbusSlave *slave, const ModbusRegis
                                               args->value,
                                               &result->value,
                                               args->function,
-                                              dataTypeInternalToExternal(args->type));
+                                              dataTypeInternalToExternal(args->type),
+                                              args->regIdxInRequest,
+                                              args->regsTotCountInRequest);
 
     result->exceptionCode = success ? MODBUS_EXCEP_NONE : MODBUS_EXCEP_SLAVE_FAILURE;
 
