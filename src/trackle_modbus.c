@@ -27,8 +27,8 @@
 uart_port_t modbus_uart_num;
 uint8_t modbus_uart_read_buffer[MODBUS_MAX_PACKET_SIZE * 2] = {0};
 uint16_t modbus_read_buffer[MODBUS_MAX_PACKET_SIZE] = {0};
-uint16_t MODBUS_WAIT_BETWEEN_PACKETS = 20 / portTICK_RATE_MS;
-uint16_t MODBUS_TIMEOUT = 100 / portTICK_RATE_MS;
+uint16_t MODBUS_WAIT_BETWEEN_PACKETS = 20 / portTICK_PERIOD_MS;
+uint16_t MODBUS_TIMEOUT = 100 / portTICK_PERIOD_MS;
 
 TickType_t xLastWriteTime;
 ModbusMaster master;
@@ -397,12 +397,12 @@ esp_err_t Trackle_Modbus_Slave_init(const modbus_slave_config_t *modbus_config)
 
 bool Trackle_Modbus_set_timeout(uint16_t timeout_ms)
 {
-    MODBUS_TIMEOUT = timeout_ms / portTICK_RATE_MS;
+    MODBUS_TIMEOUT = timeout_ms / portTICK_PERIOD_MS;
     return true;
 }
 
 bool Trackle_Modbus_set_pause_between_packets(uint16_t pause_ms)
 {
-    MODBUS_WAIT_BETWEEN_PACKETS = pause_ms / portTICK_RATE_MS;
+    MODBUS_WAIT_BETWEEN_PACKETS = pause_ms / portTICK_PERIOD_MS;
     return true;
 }

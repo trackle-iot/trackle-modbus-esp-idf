@@ -12,6 +12,7 @@ configure_file(
 idf_component_register(
     SRCS "src/impl.c" "src/trackle_modbus.c"
     INCLUDE_DIRS "." "${LIBLIGHTMODBUS_REPO_DIR}/include"
+    REQUIRES driver
 )
 
 # Inform liblightmodbus to use ESP config header
