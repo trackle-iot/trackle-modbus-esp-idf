@@ -10,10 +10,13 @@ configure_file(
 
 # Register component
 idf_component_register(
-    SRCS "src/impl.c" "src/trackle_modbus.c"
+    SRCS "src/impl.c" "src/trackle_modbus_rtu.c" "src/trackle_modbus_tcp.c" "src/modbus_hal_esp32.c"
     INCLUDE_DIRS "." "${LIBLIGHTMODBUS_REPO_DIR}/include"
-    REQUIRES driver
+    REQUIRES driver trackle-library-esp-idf
 )
+
+# Compatibility with esp-idf 5.0 by suppressing error
+set_target_properties(${COMPONENT_LIB} PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 
 # Inform liblightmodbus to use ESP config header
 idf_build_set_property(COMPILE_DEFINITIONS "-DLIGHTMODBUS_USE_CONFIG_FILE" APPEND)

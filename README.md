@@ -15,7 +15,7 @@ It provides an easy-to-use interface for executing Modbus commands, such as read
 3. Configure the modbus parameters:  
 
  ```c++  
-    modbus_config_t modbus_config = {  
+    modbus_config_rtu_t modbus_config = {  
         .uart_num = UART_NUM_0,  
         .baud_rate = 9600,  
         .data_bits = UART_DATA_8_BITS,  

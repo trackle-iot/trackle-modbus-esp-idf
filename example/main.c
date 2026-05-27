@@ -6,7 +6,7 @@ void app_main()
     ModbusError res;
 
     // Initialize and start Modbus controller
-    modbus_config_t modbus_config = {
+    modbus_config_rtu_t modbus_config = {
         .uart_num = UART_NUM_1,
         .baud_rate = 9600,
         .data_bits = UART_DATA_8_BITS,
@@ -30,7 +30,7 @@ void app_main()
     {
         ESP_LOGI("main", "------------");
         ESP_LOGI("main", "T_READ_HOLDING_REGISTERS");
-        res = Trackle_Modbus_execute_command(T_READ_HOLDING_REGISTERS, 1, 231, 1, &result);
+        res = Trackle_Modbus_execute_command_rtu(T_READ_HOLDING_REGISTERS, 1, 231, 1, &result);
         ESP_LOGI("main", "Function %d, res %d, value %d", T_READ_HOLDING_REGISTERS, res, result[0]);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         ESP_LOGI("main", "");
@@ -38,7 +38,7 @@ void app_main()
         write[0] = 200;
         ESP_LOGI("main", "------------");
         ESP_LOGI("main", "T_WRITE_SINGLE_REGISTER");
-        res = Trackle_Modbus_execute_command(T_WRITE_SINGLE_REGISTER, 1, 231, 1, &write);
+        res = Trackle_Modbus_execute_command_rtu(T_WRITE_SINGLE_REGISTER, 1, 231, 1, &write);
         ESP_LOGI("main", "Function %d, res %d", T_WRITE_SINGLE_REGISTER, res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         ESP_LOGI("main", "");
